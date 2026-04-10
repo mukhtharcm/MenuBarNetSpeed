@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-04-10
+
+### Changed
+- Renamed the GitHub repository to `net-speed-bar` and updated documentation links.
+- Published GitHub release bodies directly from the matching `CHANGELOG.md` entry.
+- Added release and changelog documentation for future versioning.
+
+### Fixed
+- Fixed traffic speed overcounting by measuring only the main internet-facing interface families.
+- Fixed rollover handling in traffic sampling to avoid crashes in `refresh()`.
+- Reduced threshold notification noise so alerts only fire when speed crosses above the configured limit.
+
 ## [1.1.0] - 2026-04-10
 
 ### Changed
