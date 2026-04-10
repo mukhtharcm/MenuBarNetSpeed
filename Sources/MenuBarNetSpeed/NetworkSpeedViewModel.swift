@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import UserNotifications
 
 @MainActor
 final class NetworkSpeedViewModel: ObservableObject {
@@ -16,6 +17,9 @@ final class NetworkSpeedViewModel: ObservableObject {
     @Published private(set) var peakUploadBytesPerSecond: UInt64 = 0
 
     private static let historyCapacity = 60
+    /// Cooldown between threshold notifications (seconds)
+    private static let notificationCooldown: TimeInterval = 30
+    private var lastThresholdNotification: Date = .distantPast
 
     private let trafficReader = NetworkTrafficReader()
     private let wifiProvider = WiFiDetailsProvider()
@@ -95,6 +99,11 @@ final class NetworkSpeedViewModel: ObservableObject {
             .sink { [weak self] newInterval in
                 self?.startTimer(interval: newInterval)
             }
+
+        // Request notification permission if threshold is already enabled
+        if settings.speedThresholdEnabled {
+            requestNotificationPermission()
+        }
     }
 
     private func startTimer(interval: Double) {
@@ -161,6 +170,8 @@ final class NetworkSpeedViewModel: ObservableObject {
         peakDownloadBytesPerSecond = max(peakDownloadBytesPerSecond, downloadBytesPerSecond)
         peakUploadBytesPerSecond = max(peakUploadBytesPerSecond, uploadBytesPerSecond)
 
+        checkSpeedThreshold()
+
         appendHistory(download: downloadBytesPerSecond, upload: uploadBytesPerSecond)
     }
 
@@ -173,6 +184,44 @@ final class NetworkSpeedViewModel: ObservableObject {
         if uploadHistory.count > Self.historyCapacity {
             uploadHistory.removeFirst(uploadHistory.count - Self.historyCapacity)
         }
+    }
+
+    /// Returns the notification center if the app has a bundle identifier (required by UNUserNotificationCenter).
+    private static var notificationCenter: UNUserNotificationCenter? {
+        guard Bundle.main.bundleIdentifier != nil else { return nil }
+        return UNUserNotificationCenter.current()
+    }
+
+    private func checkSpeedThreshold() {
+        guard settings.speedThresholdEnabled else { return }
+        let thresholdBytes = UInt64(settings.speedThresholdMBps * 1024 * 1024)
+        guard thresholdBytes > 0 else { return }
+
+        let exceeded = downloadBytesPerSecond > thresholdBytes || uploadBytesPerSecond > thresholdBytes
+        guard exceeded else { return }
+
+        let now = Date()
+        guard now.timeIntervalSince(lastThresholdNotification) >= Self.notificationCooldown else { return }
+        lastThresholdNotification = now
+
+        let direction = downloadBytesPerSecond > thresholdBytes ? "Download" : "Upload"
+        let speed = downloadBytesPerSecond > thresholdBytes ? downloadBytesPerSecond : uploadBytesPerSecond
+
+        let content = UNMutableNotificationContent()
+        content.title = "High \(direction) Speed"
+        content.body = "\(direction) reached \(Self.format(bytesPerSecond: speed, asBits: settings.useBitsPerSecond)) (threshold: \(Int(settings.speedThresholdMBps)) MB/s)"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "speed-threshold-\(direction.lowercased())",
+            content: content,
+            trigger: nil
+        )
+        Self.notificationCenter?.add(request)
+    }
+
+    func requestNotificationPermission() {
+        Self.notificationCenter?.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
     private static let byteCountFormatter: ByteCountFormatter = {

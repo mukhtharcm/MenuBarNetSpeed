@@ -45,12 +45,23 @@ final class SettingsManager: ObservableObject {
         didSet { UserDefaults.standard.set(useBitsPerSecond, forKey: Keys.useBitsPerSecond) }
     }
 
+    /// Speed threshold in MB/s. 0 means disabled.
+    @Published var speedThresholdMBps: Double {
+        didSet { UserDefaults.standard.set(speedThresholdMBps, forKey: Keys.speedThresholdMBps) }
+    }
+
+    @Published var speedThresholdEnabled: Bool {
+        didSet { UserDefaults.standard.set(speedThresholdEnabled, forKey: Keys.speedThresholdEnabled) }
+    }
+
     private enum Keys {
         static let refreshInterval = "refreshInterval"
         static let menuBarDisplayMode = "menuBarDisplayMode"
         static let launchAtLogin = "launchAtLogin"
         static let showNetworkName = "showNetworkName"
         static let useBitsPerSecond = "useBitsPerSecond"
+        static let speedThresholdMBps = "speedThresholdMBps"
+        static let speedThresholdEnabled = "speedThresholdEnabled"
     }
 
     private init() {
@@ -61,6 +72,8 @@ final class SettingsManager: ObservableObject {
             Keys.launchAtLogin: false,
             Keys.showNetworkName: true,
             Keys.useBitsPerSecond: false,
+            Keys.speedThresholdMBps: 10.0,
+            Keys.speedThresholdEnabled: false,
         ])
 
         let rawInterval = defaults.double(forKey: Keys.refreshInterval)
@@ -70,6 +83,8 @@ final class SettingsManager: ObservableObject {
         self.launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)
         self.showNetworkName = defaults.bool(forKey: Keys.showNetworkName)
         self.useBitsPerSecond = defaults.bool(forKey: Keys.useBitsPerSecond)
+        self.speedThresholdMBps = defaults.double(forKey: Keys.speedThresholdMBps)
+        self.speedThresholdEnabled = defaults.bool(forKey: Keys.speedThresholdEnabled)
     }
 
     private func updateLaunchAtLogin() {

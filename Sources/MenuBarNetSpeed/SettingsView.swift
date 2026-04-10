@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: SettingsManager
     @Binding var isPresented: Bool
+    var onThresholdEnabled: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,6 +43,33 @@ struct SettingsView: View {
                     Toggle("", isOn: $settings.useBitsPerSecond)
                         .toggleStyle(.switch)
                         .controlSize(.small)
+                }
+
+                settingsRow("Speed Alert") {
+                    Toggle("", isOn: $settings.speedThresholdEnabled)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .onChange(of: settings.speedThresholdEnabled) { enabled in
+                            if enabled {
+                                onThresholdEnabled?()
+                            }
+                        }
+                }
+
+                if settings.speedThresholdEnabled {
+                    settingsRow("Alert Threshold") {
+                        HStack(spacing: 4) {
+                            Picker("", selection: $settings.speedThresholdMBps) {
+                                Text("1 MB/s").tag(1.0)
+                                Text("5 MB/s").tag(5.0)
+                                Text("10 MB/s").tag(10.0)
+                                Text("50 MB/s").tag(50.0)
+                                Text("100 MB/s").tag(100.0)
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 110)
+                        }
+                    }
                 }
 
                 settingsRow("Launch at Login") {

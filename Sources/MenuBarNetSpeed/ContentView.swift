@@ -7,7 +7,9 @@ struct ContentView: View {
 
     var body: some View {
         if showingSettings {
-            SettingsView(settings: settings, isPresented: $showingSettings)
+            SettingsView(settings: settings, isPresented: $showingSettings) {
+                viewModel.requestNotificationPermission()
+            }
         } else {
             mainContent
         }
