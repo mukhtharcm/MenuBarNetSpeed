@@ -62,6 +62,37 @@ struct ContentView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 14)
 
+            // Session totals
+            HStack {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down.circle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.blue.opacity(0.7))
+                    Text(viewModel.totalDownloadedText)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .monospacedDigit()
+                }
+
+                Spacer()
+
+                Text("Session Total")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.quaternary)
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Text(viewModel.totalUploadedText)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .monospacedDigit()
+                    Image(systemName: "arrow.up.circle")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.purple.opacity(0.7))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+
             footerSection
                 .padding(.horizontal, 16)
                 .padding(.bottom, 14)
