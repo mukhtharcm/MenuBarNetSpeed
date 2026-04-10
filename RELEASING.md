@@ -18,7 +18,7 @@ git push origin v1.0.5
    - Builds the app
    - Signs it
    - Notarizes it
-   - Publishes the GitHub release
+   - Publishes the GitHub release using the matching `CHANGELOG.md` entry as the release body
    - Uploads `.dmg` and `.zip`
 
 5. After that, check:
@@ -54,4 +54,4 @@ git push origin v1.1.0-beta.1
 
 This uses the same packaging workflow, even without creating the tag first.
 
-GitHub still generates release notes automatically, but `CHANGELOG.md` is the repo's canonical hand-maintained summary.
+`CHANGELOG.md` is the source of truth for both the repo changelog and the GitHub release body, so make sure each version has an entry before tagging.
