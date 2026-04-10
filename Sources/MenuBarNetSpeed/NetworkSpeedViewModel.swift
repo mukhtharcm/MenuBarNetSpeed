@@ -52,6 +52,14 @@ final class NetworkSpeedViewModel: ObservableObject {
         return "Network Unavailable"
     }
 
+    var showsConnectedWiFiState: Bool {
+        if let wifiInterfaceName {
+            return activeInterfaces.contains(wifiInterfaceName)
+        }
+
+        return networkName != nil
+    }
+
     var interfaceSummary: String {
         if activeInterfaces.isEmpty {
             return "No active interface detected"
@@ -187,7 +195,7 @@ final class NetworkSpeedViewModel: ObservableObject {
     }
 
     /// Returns the notification center if the app has a bundle identifier (required by UNUserNotificationCenter).
-    private static var notificationCenter: UNUserNotificationCenter? {
+    nonisolated private static var notificationCenter: UNUserNotificationCenter? {
         guard Bundle.main.bundleIdentifier != nil else { return nil }
         return UNUserNotificationCenter.current()
     }
@@ -220,8 +228,12 @@ final class NetworkSpeedViewModel: ObservableObject {
         Self.notificationCenter?.add(request)
     }
 
-    func requestNotificationPermission() {
-        Self.notificationCenter?.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    nonisolated func requestNotificationPermission() {
+        guard let center = Self.notificationCenter else { return }
+
+        Task {
+            _ = try? await center.requestAuthorization(options: [.alert, .sound])
+        }
     }
 
     private static let byteCountFormatter: ByteCountFormatter = {

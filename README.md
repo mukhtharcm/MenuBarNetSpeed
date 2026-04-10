@@ -1,42 +1,28 @@
-# MenuBarNetSpeed
+# Net Speed Bar
 
-Small macOS menu bar app that shows live download and upload speed directly in the menu bar using SwiftUI.
+Net Speed Bar is a lightweight macOS menu bar app that shows your current download and upload speed live in the menu bar.
 
-## What it does
+## Features
 
-- Shows current download and upload speed in the menu bar.
-- Opens a small popover with larger stats.
-- Displays the current Wi-Fi name when macOS exposes it.
-- Runs as a menu bar utility without a Dock icon.
-- Includes GitHub Actions workflows for CI and tagged releases.
+- Live download and upload speed in the menu bar
+- Popover with larger speed cards and connection details
+- Small, menu-bar-only app with no Dock icon
 
-## Run it
+## Install
 
-```bash
-cd MenuBarNetSpeed
-swift run
-```
+Download the latest release from:
 
-If you prefer Xcode, open the `MenuBarNetSpeed` folder as a Swift package project and run the executable target.
+https://github.com/mukhtharcm/MenuBarNetSpeed/releases
 
-## Package a release
+Open the `.dmg` or `.zip`, move `Net Speed Bar.app` to `Applications`, and launch it.
 
-```bash
-cd MenuBarNetSpeed
-./Tools/generate-app-icon.sh
-./Tools/package-release.sh
-```
+## Usage
 
-This creates a `.app`, `.zip`, and `.dmg` under `dist/<version>/`.
-
-## GitHub automation
-
-- `.github/workflows/ci.yml` builds the package and produces unsigned artifacts on pushes and pull requests.
-- `.github/workflows/release.yml` packages and uploads release assets for tags like `v0.1.0`.
-- Optional signing and notarization are controlled with GitHub secrets, matching the pattern used in `colleague-clock`.
+- The menu bar shows your current network speed live.
+- Click the menu bar item to open the popover.
+- Press `Quit` in the popover when you want to close the app.
 
 ## Notes
 
-- Speed is calculated from the byte counters on active network interfaces and updates once per second.
-- Wi-Fi SSID access may depend on macOS permissions and whether the current connection is actually Wi-Fi.
-- Release packaging expects `iconutil`, `ditto`, and the macOS developer tools on the build machine.
+- Wi-Fi name display may not always be available on macOS.
+- Speed values are based on active network interface traffic and refresh continuously.

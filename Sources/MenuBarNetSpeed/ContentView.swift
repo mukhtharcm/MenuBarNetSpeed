@@ -113,12 +113,12 @@ struct ContentView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(viewModel.networkName != nil ? Color.green.opacity(0.15) : Color.secondary.opacity(0.1))
+                    .fill(viewModel.showsConnectedWiFiState ? Color.green.opacity(0.15) : Color.secondary.opacity(0.1))
                     .frame(width: 32, height: 32)
 
-                Image(systemName: viewModel.networkName != nil ? "wifi" : "wifi.slash")
+                Image(systemName: viewModel.showsConnectedWiFiState ? "wifi" : "wifi.slash")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(viewModel.networkName != nil ? .green : .secondary)
+                    .foregroundStyle(viewModel.showsConnectedWiFiState ? .green : .secondary)
             }
 
             VStack(alignment: .leading, spacing: 2) {
