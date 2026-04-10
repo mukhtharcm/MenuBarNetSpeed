@@ -34,6 +34,7 @@ final class NetworkSpeedViewModel: ObservableObject {
     /// Cooldown between threshold notifications (seconds)
     private static let notificationCooldown: TimeInterval = 30
     private var lastThresholdNotification: Date = .distantPast
+    private var isThresholdCurrentlyExceeded = false
 
     private let trafficReader = NetworkTrafficReader()
     private let wifiProvider = WiFiDetailsProvider()
@@ -274,16 +275,28 @@ final class NetworkSpeedViewModel: ObservableObject {
     }
 
     private func checkSpeedThreshold() {
-        guard settings.speedThresholdEnabled else { return }
+        guard settings.speedThresholdEnabled else {
+            isThresholdCurrentlyExceeded = false
+            return
+        }
         let thresholdBytes = UInt64(settings.speedThresholdMBps * 1024 * 1024)
-        guard thresholdBytes > 0 else { return }
+        guard thresholdBytes > 0 else {
+            isThresholdCurrentlyExceeded = false
+            return
+        }
 
         let exceeded = downloadBytesPerSecond > thresholdBytes || uploadBytesPerSecond > thresholdBytes
-        guard exceeded else { return }
+        guard exceeded else {
+            isThresholdCurrentlyExceeded = false
+            return
+        }
+
+        guard !isThresholdCurrentlyExceeded else { return }
 
         let now = Date()
         guard now.timeIntervalSince(lastThresholdNotification) >= Self.notificationCooldown else { return }
         lastThresholdNotification = now
+        isThresholdCurrentlyExceeded = true
 
         let direction = downloadBytesPerSecond > thresholdBytes ? "Download" : "Upload"
         let speed = downloadBytesPerSecond > thresholdBytes ? downloadBytesPerSecond : uploadBytesPerSecond
@@ -347,10 +360,12 @@ final class NetworkSpeedViewModel: ObservableObject {
         isSystemSleeping = true
         refreshTimer?.invalidate()
         refreshTimer = nil
+        isThresholdCurrentlyExceeded = false
     }
 
     private func handleSystemDidWake() {
         isSystemSleeping = false
+        isThresholdCurrentlyExceeded = false
         lastSnapshot = nil
         refresh()
         startTimer(interval: settings.refreshInterval)
