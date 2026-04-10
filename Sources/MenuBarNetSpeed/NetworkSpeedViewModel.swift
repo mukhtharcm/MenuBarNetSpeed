@@ -232,21 +232,9 @@ final class NetworkSpeedViewModel: ObservableObject {
         }
 
         let interval = max(snapshot.timestamp.timeIntervalSince(lastSnapshot.timestamp), 0.25)
-
-        // Handle 32-bit counter rollover (wraps at ~4 GB)
-        let uint32Max = UInt64(UInt32.max)
-        let receivedDelta: UInt64
-        if snapshot.receivedBytes >= lastSnapshot.receivedBytes {
-            receivedDelta = snapshot.receivedBytes - lastSnapshot.receivedBytes
-        } else {
-            receivedDelta = (uint32Max - lastSnapshot.receivedBytes) + snapshot.receivedBytes
-        }
-        let sentDelta: UInt64
-        if snapshot.sentBytes >= lastSnapshot.sentBytes {
-            sentDelta = snapshot.sentBytes - lastSnapshot.sentBytes
-        } else {
-            sentDelta = (uint32Max - lastSnapshot.sentBytes) + snapshot.sentBytes
-        }
+        let delta = snapshot.delta(since: lastSnapshot)
+        let receivedDelta = delta.receivedBytes
+        let sentDelta = delta.sentBytes
 
         downloadBytesPerSecond = UInt64(Double(receivedDelta) / interval)
         uploadBytesPerSecond = UInt64(Double(sentDelta) / interval)
