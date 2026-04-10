@@ -28,12 +28,14 @@ struct ContentView: View {
                 speedCard(
                     title: "Download",
                     value: viewModel.downloadSpeedText,
+                    peak: viewModel.peakDownloadText,
                     systemImage: "arrow.down.circle.fill",
                     tint: .blue
                 )
                 speedCard(
                     title: "Upload",
                     value: viewModel.uploadSpeedText,
+                    peak: viewModel.peakUploadText,
                     systemImage: "arrow.up.circle.fill",
                     tint: .purple
                 )
@@ -134,7 +136,7 @@ struct ContentView: View {
 
     // MARK: - Speed Card
 
-    private func speedCard(title: String, value: String, systemImage: String, tint: Color) -> some View {
+    private func speedCard(title: String, value: String, peak: String, systemImage: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 5) {
                 Image(systemName: systemImage)
@@ -151,6 +153,15 @@ struct ContentView: View {
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+
+            HStack(spacing: 3) {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 8))
+                Text("Peak \(peak)")
+                    .font(.system(size: 9))
+            }
+            .foregroundStyle(.tertiary)
+            .monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
