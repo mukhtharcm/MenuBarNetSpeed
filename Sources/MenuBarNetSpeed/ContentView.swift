@@ -111,6 +111,7 @@ struct ContentView: View {
                         .strokeBorder(tint.opacity(0.1), lineWidth: 0.5)
                 )
         }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Footer
@@ -135,6 +136,7 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
+            .accessibilityLabel("Settings")
 
             Button {
                 NSApplication.shared.terminate(nil)
@@ -145,6 +147,7 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .keyboardShortcut("q")
+            .accessibilityLabel("Quit application")
         }
     }
 

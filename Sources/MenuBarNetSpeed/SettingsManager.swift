@@ -57,7 +57,8 @@ final class SettingsManager: ObservableObject {
             Keys.showNetworkName: true,
         ])
 
-        self.refreshInterval = defaults.double(forKey: Keys.refreshInterval)
+        let rawInterval = defaults.double(forKey: Keys.refreshInterval)
+        self.refreshInterval = max(0.5, min(60.0, rawInterval))
         self.menuBarDisplayMode =
             MenuBarDisplayMode(rawValue: defaults.integer(forKey: Keys.menuBarDisplayMode)) ?? .both
         self.launchAtLogin = defaults.bool(forKey: Keys.launchAtLogin)

@@ -68,7 +68,6 @@ final class NetworkSpeedViewModel: ObservableObject {
         startTimer(interval: settings.refreshInterval)
 
         settingsCancellable = settings.$refreshInterval
-            .dropFirst()
             .sink { [weak self] newInterval in
                 self?.startTimer(interval: newInterval)
             }
@@ -84,15 +83,19 @@ final class NetworkSpeedViewModel: ObservableObject {
     }
 
     private func refresh() {
-        let wifiDetails = wifiProvider.currentDetails()
-        networkName = wifiDetails.ssid
-        wifiInterfaceName = wifiDetails.interfaceName
+        if settings.showNetworkName {
+            let wifiDetails = wifiProvider.currentDetails()
+            networkName = wifiDetails.ssid
+            wifiInterfaceName = wifiDetails.interfaceName
+        } else {
+            networkName = nil
+            wifiInterfaceName = nil
+        }
 
         guard let snapshot = trafficReader.readSnapshot() else {
             downloadBytesPerSecond = 0
             uploadBytesPerSecond = 0
             activeInterfaces = []
-            wifiInterfaceName = wifiDetails.interfaceName
             lastSnapshot = nil
             return
         }
@@ -110,24 +113,37 @@ final class NetworkSpeedViewModel: ObservableObject {
         }
 
         let interval = max(snapshot.timestamp.timeIntervalSince(lastSnapshot.timestamp), 0.25)
-        let receivedDelta = snapshot.receivedBytes >= lastSnapshot.receivedBytes
-            ? snapshot.receivedBytes - lastSnapshot.receivedBytes
-            : 0
-        let sentDelta = snapshot.sentBytes >= lastSnapshot.sentBytes
-            ? snapshot.sentBytes - lastSnapshot.sentBytes
-            : 0
+
+        // Handle 32-bit counter rollover (wraps at ~4 GB)
+        let uint32Max = UInt64(UInt32.max)
+        let receivedDelta: UInt64
+        if snapshot.receivedBytes >= lastSnapshot.receivedBytes {
+            receivedDelta = snapshot.receivedBytes - lastSnapshot.receivedBytes
+        } else {
+            receivedDelta = (uint32Max - lastSnapshot.receivedBytes) + snapshot.receivedBytes
+        }
+        let sentDelta: UInt64
+        if snapshot.sentBytes >= lastSnapshot.sentBytes {
+            sentDelta = snapshot.sentBytes - lastSnapshot.sentBytes
+        } else {
+            sentDelta = (uint32Max - lastSnapshot.sentBytes) + snapshot.sentBytes
+        }
 
         downloadBytesPerSecond = UInt64(Double(receivedDelta) / interval)
         uploadBytesPerSecond = UInt64(Double(sentDelta) / interval)
     }
 
-    private static func format(bytesPerSecond: UInt64) -> String {
+    private static let byteCountFormatter: ByteCountFormatter = {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .binary
         formatter.includesUnit = true
         formatter.isAdaptive = true
-        return "\(formatter.string(fromByteCount: Int64(bytesPerSecond)))/s"
+        return formatter
+    }()
+
+    private static func format(bytesPerSecond: UInt64) -> String {
+        "\(byteCountFormatter.string(fromByteCount: Int64(bytesPerSecond)))/s"
     }
 
     private static func compactFormat(bytesPerSecond: UInt64) -> String {
