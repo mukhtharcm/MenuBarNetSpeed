@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-04-10
+
+### Added
+- **Latency monitor**: live ping measurement using TCP handshake RTT (Cloudflare, Google, or Apple DNS).
+- Latency displayed in popover with color-coded status indicator (green/orange/red).
+- Optional latency display in the menu bar.
+- Settings for latency: enable/disable, ping target selection, show in menu bar.
+- **NetSpeedKit library**: extracted testable core logic (traffic reader, speed formatter, latency monitor).
+- **75 unit tests** covering traffic snapshots, speed formatting, interface filtering, latency monitor lifecycle, and threshold alerts.
+
+### Changed
+- Refactored `Package.swift` into three targets: `MenuBarNetSpeed` (app), `NetSpeedKit` (library), `NetSpeedKitTests` (tests).
+- ViewModel delegates all formatting to `SpeedFormatter` for consistency and testability.
+
 ## [1.1.1] - 2026-04-10
 
 ### Changed
