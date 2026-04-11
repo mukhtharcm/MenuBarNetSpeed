@@ -24,6 +24,14 @@ struct MenuBarNetSpeedApp: App {
                     Text(viewModel.uploadCompact)
                         .monospacedDigit()
                 }
+                if settings.latencyEnabled && settings.showLatencyInMenuBar {
+                    Text("·")
+                        .padding(.horizontal, 1)
+                    Image(systemName: "gauge.with.needle")
+                        .font(.system(size: 8, weight: .semibold))
+                    Text(viewModel.latencyCompact)
+                        .monospacedDigit()
+                }
             }
             .font(.system(size: 11))
         }

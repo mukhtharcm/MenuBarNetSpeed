@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import NetSpeedKit
 import Network
 import SystemConfiguration
 import UserNotifications
@@ -24,6 +25,8 @@ final class NetworkSpeedViewModel: ObservableObject {
     @Published private(set) var totalUploadedDisplayText: String = "0 KB"
     @Published private(set) var peakDownloadDisplayText: String = "0 KB/s"
     @Published private(set) var peakUploadDisplayText: String = "0 KB/s"
+    @Published private(set) var latencyMs: Double?
+    @Published private(set) var latencyDisplayText: String = "—"
 
     /// Current network path from NWPathMonitor — drives all connection status UI.
     @Published private var networkPath: NWPath?
@@ -39,6 +42,7 @@ final class NetworkSpeedViewModel: ObservableObject {
     private let trafficReader = NetworkTrafficReader()
     private let wifiProvider = WiFiDetailsProvider()
     private let settings = SettingsManager.shared
+    private let latencyMonitor = LatencyMonitor()
     private var refreshTimer: Timer?
     private var pathMonitor: NWPathMonitor?
     private var settingsCancellables = Set<AnyCancellable>()
@@ -176,6 +180,28 @@ final class NetworkSpeedViewModel: ObservableObject {
             }
             .store(in: &settingsCancellables)
 
+        settings.$latencyEnabled
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                if enabled {
+                    self?.startLatencyMonitor()
+                } else {
+                    self?.latencyMonitor.stop()
+                    self?.latencyMs = nil
+                    self?.latencyDisplayText = "—"
+                }
+            }
+            .store(in: &settingsCancellables)
+
+        settings.$latencyHost
+            .removeDuplicates()
+            .sink { [weak self] host in
+                let trimmed = host.trimmingCharacters(in: .whitespaces)
+                guard !trimmed.isEmpty else { return }
+                self?.latencyMonitor.updateTarget(host: trimmed)
+            }
+            .store(in: &settingsCancellables)
+
         let workspaceCenter = NSWorkspace.shared.notificationCenter
 
         workspaceCenter.publisher(for: NSWorkspace.willSleepNotification)
@@ -194,6 +220,31 @@ final class NetworkSpeedViewModel: ObservableObject {
         if settings.speedThresholdEnabled {
             requestNotificationPermission()
         }
+
+        // Start latency monitoring if enabled
+        if settings.latencyEnabled {
+            startLatencyMonitor()
+        }
+    }
+
+    private func startLatencyMonitor() {
+        latencyMonitor.onStatusUpdate = { [weak self] status in
+            switch status {
+            case .reachable(let ms):
+                self?.latencyMs = ms
+                self?.latencyDisplayText = SpeedFormatter.formatLatency(ms)
+            case .unreachable:
+                self?.latencyMs = nil
+                self?.latencyDisplayText = "Timeout"
+            case .idle, .measuring:
+                break
+            }
+        }
+        let host = settings.latencyHost.trimmingCharacters(in: .whitespaces)
+        if !host.isEmpty {
+            latencyMonitor.updateTarget(host: host)
+        }
+        latencyMonitor.start(interval: max(settings.refreshInterval * 2, 5))
     }
 
     private func startTimer(interval: Double) {
@@ -303,7 +354,7 @@ final class NetworkSpeedViewModel: ObservableObject {
 
         let content = UNMutableNotificationContent()
         content.title = "High \(direction) Speed"
-        content.body = "\(direction) reached \(Self.format(bytesPerSecond: speed, asBits: settings.useBitsPerSecond)) (threshold: \(Int(settings.speedThresholdMBps)) MB/s)"
+        content.body = "\(direction) reached \(SpeedFormatter.format(bytesPerSecond: speed, asBits: settings.useBitsPerSecond)) (threshold: \(Int(settings.speedThresholdMBps)) MB/s)"
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -321,15 +372,6 @@ final class NetworkSpeedViewModel: ObservableObject {
             _ = try? await center.requestAuthorization(options: [.alert, .sound])
         }
     }
-
-    private static let byteCountFormatter: ByteCountFormatter = {
-        let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.countStyle = .binary
-        formatter.includesUnit = true
-        formatter.isAdaptive = true
-        return formatter
-    }()
 
     private func startPathMonitor() {
         let monitor = NWPathMonitor()
@@ -361,6 +403,7 @@ final class NetworkSpeedViewModel: ObservableObject {
         refreshTimer?.invalidate()
         refreshTimer = nil
         isThresholdCurrentlyExceeded = false
+        latencyMonitor.stop()
     }
 
     private func handleSystemDidWake() {
@@ -369,78 +412,25 @@ final class NetworkSpeedViewModel: ObservableObject {
         lastSnapshot = nil
         refresh()
         startTimer(interval: settings.refreshInterval)
+        if settings.latencyEnabled {
+            startLatencyMonitor()
+        }
     }
 
     private func updateFormattedOutput() {
         let usesBits = settings.useBitsPerSecond
-        downloadDisplayText = Self.format(bytesPerSecond: downloadBytesPerSecond, asBits: usesBits)
-        uploadDisplayText = Self.format(bytesPerSecond: uploadBytesPerSecond, asBits: usesBits)
-        downloadCompactText = Self.compactFormat(bytesPerSecond: downloadBytesPerSecond, asBits: usesBits)
-        uploadCompactText = Self.compactFormat(bytesPerSecond: uploadBytesPerSecond, asBits: usesBits)
-        totalDownloadedDisplayText = Self.byteCountFormatter.string(fromByteCount: Int64(clamping: totalDownloadedBytes))
-        totalUploadedDisplayText = Self.byteCountFormatter.string(fromByteCount: Int64(clamping: totalUploadedBytes))
-        peakDownloadDisplayText = Self.format(bytesPerSecond: peakDownloadBytesPerSecond, asBits: usesBits)
-        peakUploadDisplayText = Self.format(bytesPerSecond: peakUploadBytesPerSecond, asBits: usesBits)
+        downloadDisplayText = SpeedFormatter.format(bytesPerSecond: downloadBytesPerSecond, asBits: usesBits)
+        uploadDisplayText = SpeedFormatter.format(bytesPerSecond: uploadBytesPerSecond, asBits: usesBits)
+        downloadCompactText = SpeedFormatter.compactFormat(bytesPerSecond: downloadBytesPerSecond, asBits: usesBits)
+        uploadCompactText = SpeedFormatter.compactFormat(bytesPerSecond: uploadBytesPerSecond, asBits: usesBits)
+        totalDownloadedDisplayText = SpeedFormatter.formatByteCount(totalDownloadedBytes)
+        totalUploadedDisplayText = SpeedFormatter.formatByteCount(totalUploadedBytes)
+        peakDownloadDisplayText = SpeedFormatter.format(bytesPerSecond: peakDownloadBytesPerSecond, asBits: usesBits)
+        peakUploadDisplayText = SpeedFormatter.format(bytesPerSecond: peakUploadBytesPerSecond, asBits: usesBits)
     }
 
-    private static func format(bytesPerSecond: UInt64, asBits: Bool = false) -> String {
-        if asBits {
-            return formatBits(bytesPerSecond: bytesPerSecond)
-        }
-        return "\(byteCountFormatter.string(fromByteCount: Int64(bytesPerSecond)))/s"
-    }
-
-    private static func formatBits(bytesPerSecond: UInt64) -> String {
-        let bitsPerSecond = Double(bytesPerSecond) * 8
-        let units = ["bps", "Kbps", "Mbps", "Gbps"]
-        var value = bitsPerSecond
-        var unitIndex = 0
-        while value >= 1000 && unitIndex < units.count - 1 {
-            value /= 1000
-            unitIndex += 1
-        }
-        if unitIndex == 0 {
-            return "\(Int(value)) \(units[0])"
-        }
-        let precision = value >= 100 ? 0 : (value >= 10 ? 1 : 2)
-        return String(format: "%.\(precision)f %@", value, units[unitIndex])
-    }
-
-    private static func compactFormat(bytesPerSecond: UInt64, asBits: Bool = false) -> String {
-        if asBits {
-            return compactFormatBits(bytesPerSecond: bytesPerSecond)
-        }
-        if bytesPerSecond < 1024 {
-            return "\(bytesPerSecond)B/s"
-        }
-
-        let units = ["KB/s", "MB/s", "GB/s"]
-        var value = Double(bytesPerSecond)
-        var unitIndex = -1
-
-        repeat {
-            value /= 1024
-            unitIndex += 1
-        } while value >= 1024 && unitIndex < units.count - 1
-
-        let precision = value >= 100 ? 0 : (value >= 10 ? 1 : 2)
-        return String(format: "%.\(precision)f%@", value, units[unitIndex])
-    }
-
-    private static func compactFormatBits(bytesPerSecond: UInt64) -> String {
-        let bitsPerSecond = Double(bytesPerSecond) * 8
-        if bitsPerSecond < 1000 {
-            return "\(Int(bitsPerSecond))bps"
-        }
-        let units = ["Kb", "Mb", "Gb"]
-        var value = bitsPerSecond
-        var unitIndex = -1
-        repeat {
-            value /= 1000
-            unitIndex += 1
-        } while value >= 1000 && unitIndex < units.count - 1
-        let precision = value >= 100 ? 0 : (value >= 10 ? 1 : 2)
-        return String(format: "%.\(precision)f%@", value, units[unitIndex])
+    var latencyCompact: String {
+        SpeedFormatter.compactLatency(latencyMs)
     }
 
     /// Best-effort VPN detection via CFNetworkCopySystemProxySettings.

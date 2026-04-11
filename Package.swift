@@ -14,7 +14,17 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "MenuBarNetSpeed"
+            name: "MenuBarNetSpeed",
+            dependencies: ["NetSpeedKit"]
+        ),
+        .target(
+            name: "NetSpeedKit",
+            path: "Sources/NetSpeedKit"
+        ),
+        .testTarget(
+            name: "NetSpeedKitTests",
+            dependencies: ["NetSpeedKit"],
+            path: "Tests/NetSpeedKitTests"
         )
     ]
 )

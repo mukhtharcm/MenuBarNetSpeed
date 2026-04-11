@@ -1,15 +1,25 @@
 import Foundation
 
-struct InterfaceTrafficCounters {
-    let receivedBytes: UInt32
-    let sentBytes: UInt32
+public struct InterfaceTrafficCounters: Sendable {
+    public let receivedBytes: UInt32
+    public let sentBytes: UInt32
+
+    public init(receivedBytes: UInt32, sentBytes: UInt32) {
+        self.receivedBytes = receivedBytes
+        self.sentBytes = sentBytes
+    }
 }
 
-struct TrafficSnapshot {
-    let timestamp: Date
-    let interfaceCounters: [String: InterfaceTrafficCounters]
+public struct TrafficSnapshot: Sendable {
+    public let timestamp: Date
+    public let interfaceCounters: [String: InterfaceTrafficCounters]
 
-    func delta(since previous: TrafficSnapshot) -> (receivedBytes: UInt64, sentBytes: UInt64) {
+    public init(timestamp: Date, interfaceCounters: [String: InterfaceTrafficCounters]) {
+        self.timestamp = timestamp
+        self.interfaceCounters = interfaceCounters
+    }
+
+    public func delta(since previous: TrafficSnapshot) -> (receivedBytes: UInt64, sentBytes: UInt64) {
         var receivedBytes: UInt64 = 0
         var sentBytes: UInt64 = 0
 
@@ -24,8 +34,10 @@ struct TrafficSnapshot {
     }
 }
 
-struct NetworkTrafficReader {
-    func readSnapshot() -> TrafficSnapshot? {
+public struct NetworkTrafficReader: Sendable {
+    public init() {}
+
+    public func readSnapshot() -> TrafficSnapshot? {
         var interfacePointer: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&interfacePointer) == 0, let firstAddress = interfacePointer else {
             return nil
@@ -63,7 +75,7 @@ struct NetworkTrafficReader {
         return TrafficSnapshot(timestamp: Date(), interfaceCounters: countersByInterface)
     }
 
-    private static func isMeasuredInterface(_ name: String) -> Bool {
+    public static func isMeasuredInterface(_ name: String) -> Bool {
         let prefixes = ["en", "pdp_ip"]
         return prefixes.contains { name.hasPrefix($0) }
     }

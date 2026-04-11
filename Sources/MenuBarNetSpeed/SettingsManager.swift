@@ -54,6 +54,18 @@ final class SettingsManager: ObservableObject {
         didSet { UserDefaults.standard.set(speedThresholdEnabled, forKey: Keys.speedThresholdEnabled) }
     }
 
+    @Published var latencyEnabled: Bool {
+        didSet { UserDefaults.standard.set(latencyEnabled, forKey: Keys.latencyEnabled) }
+    }
+
+    @Published var latencyHost: String {
+        didSet { UserDefaults.standard.set(latencyHost, forKey: Keys.latencyHost) }
+    }
+
+    @Published var showLatencyInMenuBar: Bool {
+        didSet { UserDefaults.standard.set(showLatencyInMenuBar, forKey: Keys.showLatencyInMenuBar) }
+    }
+
     private enum Keys {
         static let refreshInterval = "refreshInterval"
         static let menuBarDisplayMode = "menuBarDisplayMode"
@@ -62,6 +74,9 @@ final class SettingsManager: ObservableObject {
         static let useBitsPerSecond = "useBitsPerSecond"
         static let speedThresholdMBps = "speedThresholdMBps"
         static let speedThresholdEnabled = "speedThresholdEnabled"
+        static let latencyEnabled = "latencyEnabled"
+        static let latencyHost = "latencyHost"
+        static let showLatencyInMenuBar = "showLatencyInMenuBar"
     }
 
     private init() {
@@ -74,6 +89,9 @@ final class SettingsManager: ObservableObject {
             Keys.useBitsPerSecond: false,
             Keys.speedThresholdMBps: 10.0,
             Keys.speedThresholdEnabled: false,
+            Keys.latencyEnabled: true,
+            Keys.latencyHost: "1.1.1.1",
+            Keys.showLatencyInMenuBar: false,
         ])
 
         let rawInterval = defaults.double(forKey: Keys.refreshInterval)
@@ -85,6 +103,10 @@ final class SettingsManager: ObservableObject {
         self.useBitsPerSecond = defaults.bool(forKey: Keys.useBitsPerSecond)
         self.speedThresholdMBps = defaults.double(forKey: Keys.speedThresholdMBps)
         self.speedThresholdEnabled = defaults.bool(forKey: Keys.speedThresholdEnabled)
+        self.latencyEnabled = defaults.bool(forKey: Keys.latencyEnabled)
+        let savedHost = defaults.string(forKey: Keys.latencyHost) ?? "1.1.1.1"
+        self.latencyHost = savedHost.isEmpty ? "1.1.1.1" : savedHost
+        self.showLatencyInMenuBar = defaults.bool(forKey: Keys.showLatencyInMenuBar)
     }
 
     private func updateLaunchAtLogin() {

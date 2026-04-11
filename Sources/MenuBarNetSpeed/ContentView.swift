@@ -46,6 +46,13 @@ struct ContentView: View {
             .padding(.top, settings.showNetworkName ? 0 : 16)
             .padding(.bottom, 14)
 
+            // Latency pill
+            if settings.latencyEnabled {
+                latencyRow
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 14)
+            }
+
             // Sparkline
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
@@ -205,6 +212,53 @@ struct ContentView: View {
                 )
         }
         .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Latency Row
+
+    private var latencyRow: some View {
+        let tint: Color = {
+            guard let ms = viewModel.latencyMs else { return .secondary }
+            if ms < 50 { return .green }
+            if ms < 150 { return .orange }
+            return .red
+        }()
+
+        return HStack(spacing: 8) {
+            HStack(spacing: 5) {
+                Image(systemName: "gauge.with.needle")
+                    .font(.system(size: 11))
+                    .foregroundStyle(tint)
+
+                Text("Latency")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 6, height: 6)
+
+                Text(viewModel.latencyDisplayText)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(tint.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(tint.opacity(0.1), lineWidth: 0.5)
+                )
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Latency \(viewModel.latencyDisplayText)")
     }
 
     // MARK: - Footer

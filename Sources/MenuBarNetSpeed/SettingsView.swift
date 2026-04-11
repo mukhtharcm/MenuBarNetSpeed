@@ -72,6 +72,30 @@ struct SettingsView: View {
                     }
                 }
 
+                settingsRow("Latency Monitor") {
+                    Toggle("", isOn: $settings.latencyEnabled)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+
+                if settings.latencyEnabled {
+                    settingsRow("Ping Target") {
+                        Picker("", selection: $settings.latencyHost) {
+                            Text("Cloudflare (1.1.1.1)").tag("1.1.1.1")
+                            Text("Google (8.8.8.8)").tag("8.8.8.8")
+                            Text("Apple (apple.com)").tag("apple.com")
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 160)
+                    }
+
+                    settingsRow("Latency in Menu Bar") {
+                        Toggle("", isOn: $settings.showLatencyInMenuBar)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                    }
+                }
+
                 settingsRow("Launch at Login") {
                     Toggle("", isOn: $settings.launchAtLogin)
                         .toggleStyle(.switch)
