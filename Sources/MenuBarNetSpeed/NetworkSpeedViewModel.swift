@@ -27,6 +27,7 @@ final class NetworkSpeedViewModel: ObservableObject {
     @Published private(set) var peakUploadDisplayText: String = "0 KB/s"
     @Published private(set) var latencyMs: Double?
     @Published private(set) var latencyDisplayText: String = "—"
+    @Published private(set) var latencyCompactText: String = "—"
 
     /// Current network path from NWPathMonitor — drives all connection status UI.
     @Published private var networkPath: NWPath?
@@ -189,6 +190,7 @@ final class NetworkSpeedViewModel: ObservableObject {
                     self?.latencyMonitor.stop()
                     self?.latencyMs = nil
                     self?.latencyDisplayText = "—"
+                    self?.latencyCompactText = "—"
                 }
             }
             .store(in: &settingsCancellables)
@@ -233,9 +235,11 @@ final class NetworkSpeedViewModel: ObservableObject {
             case .reachable(let ms):
                 self?.latencyMs = ms
                 self?.latencyDisplayText = SpeedFormatter.formatLatency(ms)
+                self?.latencyCompactText = SpeedFormatter.compactLatency(ms)
             case .unreachable:
                 self?.latencyMs = nil
                 self?.latencyDisplayText = "Timeout"
+                self?.latencyCompactText = "—"
             case .idle, .measuring:
                 break
             }
@@ -430,7 +434,7 @@ final class NetworkSpeedViewModel: ObservableObject {
     }
 
     var latencyCompact: String {
-        SpeedFormatter.compactLatency(latencyMs)
+        latencyCompactText
     }
 
     /// Best-effort VPN detection via CFNetworkCopySystemProxySettings.
