@@ -20,6 +20,7 @@ git push origin v1.0.5
    - Notarizes it
    - Publishes the GitHub release using the matching `CHANGELOG.md` entry as the release body
    - Uploads `.dmg` and `.zip`
+   - Updates the Homebrew tap cask for stable releases
 
 5. After that, check:
    - [Releases page](https://github.com/mukhtharcm/net-speed-bar/releases)
